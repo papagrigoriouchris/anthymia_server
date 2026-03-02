@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  IRIS
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  address       String?
+  city          String?
+  phone         String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  orders        Order[]
+  sessions      Session[]
+  accounts      Account[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  description String
+  price       Float
+  image       String
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id])
+  weight      String
+  inStock     Boolean     @default(true)
+  featured    Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  orderItems  OrderItem[]
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[]
+}
+
+model BlogCategory {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  posts    Post[]
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  total         Float
+  status        OrderStatus   @default(PENDING)
+  name          String
+  address       String
+  city          String
+  phone         String
+  paymentMethod PaymentMethod @default(BANK_TRANSFER)
+  paymentStatus String        @default("pending")
+  vivaOrderCode String?
+  transactionId String?
+  aadeMark      String?
+  aadeUid       String?
+  invoiceNumber Int?
+  createdAt     DateTime      @default(now())
+  items         OrderItem[]
+}
+
+model Counter {
+  id    String @id @default(cuid())
+  name  String @unique
+  value Int    @default(0)
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+}
+
+model Post {
+  id             String    @id @default(cuid())
+  title          String
+  slug           String    @unique
+  content        String
+  excerpt        String?
+  author         String
+  featuredImage  String?
+  category       String
+  blogCategoryId String?
+  blogCategory   BlogCategory? @relation(fields: [blogCategoryId], references: [id])
+  tags           String[]
+  publishedAt    DateTime?
+  isPublished    Boolean   @default(false)
+  seoTitle       String?
+  seoDescription String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
